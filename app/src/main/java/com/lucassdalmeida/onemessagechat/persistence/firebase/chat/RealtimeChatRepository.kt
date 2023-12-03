@@ -9,6 +9,7 @@ import com.google.firebase.database.database
 import com.google.firebase.database.getValue
 import com.lucassdalmeida.onemessagechat.domain.application.chat.repository.ChatRepository
 import com.lucassdalmeida.onemessagechat.domain.entities.chat.Chat
+import java.util.UUID
 
 class RealtimeChatRepository: ChatRepository {
     private val chats = mutableMapOf<String, Chat>()
@@ -74,7 +75,9 @@ class RealtimeChatRepository: ChatRepository {
 
     override fun findById(id: String) = chats[id]
 
-    override fun findAll() = chats.values.toList()
+    override fun findAllBySubscriberId(subscriberId: UUID) = chats.values
+        .filter { subscriberId in it.subscribers }
+        .toList()
 
     override fun delete(id: String) {
         databaseReference.child(id).removeValue()
