@@ -1,12 +1,8 @@
 package com.lucassdalmeida.onemessagechat.domain.entities.chat
 
-import java.util.UUID
-
 class Chat(
     val id: String,
     message: String,
-    val owner: UUID,
-    subscribers: Set<UUID>,
 ) {
     var message: String = ""
         set(value) {
@@ -14,15 +10,10 @@ class Chat(
             field = value
         }
 
-    private val _subscribers = subscribers.toMutableSet()
-    private val subscribers get() = _subscribers.toSet()
-
     init {
         require(id.isNotBlank()) { "The id cannot be an blank string!" }
         this.message = message
     }
-
-    fun subscribe(userId: UUID) = _subscribers.add(userId)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
