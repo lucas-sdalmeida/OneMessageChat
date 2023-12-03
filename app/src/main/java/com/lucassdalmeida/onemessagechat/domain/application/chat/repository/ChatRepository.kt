@@ -9,7 +9,7 @@ interface ChatRepository {
 
     fun findAll(): List<Chat>
 
-    fun delete()
+    fun delete(id: String)
 
     operator fun contains(id: String): Boolean
 }
