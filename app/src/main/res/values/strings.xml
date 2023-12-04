@@ -2,4 +2,9 @@
     <string name="app_name">OneMessageChat</string>
     <string name="add_chat_main_menu_title">Adicionar Conversa</string>
     <string name="subscribe_main_menu_option_title">Inscrever-se</string>
+    <string name="username_login_field">Nome de usuário</string>
+    <string name="login_button">Login</string>
+    <string name="signup_button">Entrar</string>
+    <string name="toogle_to_signup">Não tem uma conta? Cadastra-se clicando aqui.</string>
+    <string name="password_field_hint">Senha</string>
 </resources>
