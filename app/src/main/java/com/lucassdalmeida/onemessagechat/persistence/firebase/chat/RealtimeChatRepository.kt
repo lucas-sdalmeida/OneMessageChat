@@ -28,14 +28,22 @@ class RealtimeChatRepository: ChatRepository {
     private fun addChildEventListener() {
         databaseReference.addChildEventListener(object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                snapshot.getValue<Chat>()?.let {
-                    chats[it.id] = it
+                snapshot.getValue<ChatDTO>()?.let {
+                    chats[it.id] = Chat(
+                        it.id,
+                        it.message,
+                        it.subscribers.map { s -> UUID.fromString(s) }.toSet()
+                    )
                 }
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
-                snapshot.getValue<Chat>()?.let {
-                    chats[it.id] = it
+                snapshot.getValue<ChatDTO>()?.let {
+                    chats[it.id] = Chat(
+                        it.id,
+                        it.message,
+                        it.subscribers.map { s -> UUID.fromString(s) }.toSet()
+                    )
                 }
             }
 
@@ -58,8 +66,14 @@ class RealtimeChatRepository: ChatRepository {
     private fun fetchChildrenOnce() {
         databaseReference.addListenerForSingleValueEvent(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue<Map<String, Chat>>()?.let {
-                    chats.putAll(it)
+                snapshot.getValue<Map<String, ChatDTO>>()?.let {
+                    it.values.map { dto ->
+                        Chat(
+                            dto.id,
+                            dto.message,
+                            dto.subscribers.map { s -> UUID.fromString(s) }.toSet(),
+                        )
+                    }.forEach { dto -> chats[dto.id] = dto }
                 }
             }
 
@@ -70,7 +84,11 @@ class RealtimeChatRepository: ChatRepository {
     }
 
     override fun create(chat: Chat) {
-        databaseReference.child(chat.id).setValue(chat)
+        databaseReference.child(chat.id).setValue(ChatDTO().also {
+            it.id = chat.id
+            it.message = chat.message
+            it.subscribers = chat.subscribers.map { s -> s.toString() }.toList()
+        })
     }
 
     override fun findById(id: String) = chats[id]
@@ -84,4 +102,10 @@ class RealtimeChatRepository: ChatRepository {
     }
 
     override fun contains(id: String) = id in chats
+
+    private class ChatDTO() {
+        lateinit var id: String
+        lateinit var message: String
+        lateinit var subscribers: List<String>
+    }
 }
