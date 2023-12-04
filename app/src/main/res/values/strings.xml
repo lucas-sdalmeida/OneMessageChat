@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">OneMessageChat</string>
+    <string name="add_chat_main_menu_title">Adicionar Conversa</string>
+    <string name="subscribe_main_menu_option_title">Inscrever-se</string>
 </resources>
