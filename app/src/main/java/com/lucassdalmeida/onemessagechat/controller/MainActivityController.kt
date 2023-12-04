@@ -2,8 +2,12 @@ package com.lucassdalmeida.onemessagechat.controller
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Message
+import android.util.Log
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import com.lucassdalmeida.onemessagechat.R
 import com.lucassdalmeida.onemessagechat.databinding.ActivityMainBinding
 import com.lucassdalmeida.onemessagechat.domain.entities.chat.Chat
@@ -14,6 +18,8 @@ import com.lucassdalmeida.onemessagechat.view.MainActivity
 import com.lucassdalmeida.onemessagechat.view.adapter.ChatListViewAdapter
 import java.util.UUID
 
+private const val GET_CHATS = 1000
+
 class MainActivityController(
     private val mainActivity: MainActivity,
     private val activityMainBinding: ActivityMainBinding,
@@ -22,20 +28,29 @@ class MainActivityController(
     private val chatRepository = RealtimeChatRepository()
     private val chatList = mutableListOf<Chat>()
     private val chatListViewAdapter = ChatListViewAdapter(mainActivity, chatList)
+    private val chatActivityResultLauncher = registerForActivityResult()
     private lateinit var subscriber: UUID
+    private val handler = object: Handler(mainActivity.mainLooper) {
+        override fun handleMessage(msg: Message) {
+            super.handleMessage(msg)
+
+            if (msg.what == GET_CHATS) {
+                updateChats()
+                chatListViewAdapter.notifyDataSetChanged()
+            }
+        }
+    }
 
     init {
         initializeSubscriber(subscriber)
+        activityMainBinding.chatListView.adapter = chatListViewAdapter
     }
 
     private fun initializeSubscriber(id: UUID?) {
         if (id != null) subscriber = id
         LoginOrSignupDialog(mainActivity) {
             subscriber = this@LoginOrSignupDialog.subscriberId
-            chatRepository.findAllBySubscriberId(subscriberId).forEach {
-                chatList.add(it)
-            }
-            chatListViewAdapter.notifyDataSetChanged()
+            updateChats()
         }
     }
 
@@ -53,8 +68,26 @@ class MainActivityController(
     private fun addChat(): Boolean {
         Intent(mainActivity, ChatActivity::class.java).also {
             it.putExtra("SUBSCRIBER_ID", subscriber)
-            mainActivity.startActivity(it)
+            chatActivityResultLauncher.launch(it)
         }
         return true
+    }
+
+    private fun registerForActivityResult() = mainActivity.registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        updateChats()
+    }
+
+    private fun updateChats() {
+        Thread {
+            chatList.clear()
+            chatRepository.findAllBySubscriberId(subscriber)
+                .forEach { chatList.add(it) }
+            handler.sendMessageDelayed(
+                handler.obtainMessage().apply { what = GET_CHATS },
+                15000
+            )
+        }.start()
     }
 }
