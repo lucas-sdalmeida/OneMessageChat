@@ -6,6 +6,9 @@ import android.os.Handler
 import android.os.Message
 import android.util.Log
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
+import android.widget.AdapterView.OnItemClickListener
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import com.lucassdalmeida.onemessagechat.R
@@ -37,7 +40,20 @@ class MainActivityController(
 
             if (msg.what == GET_CHATS) {
                 updateChats()
-                chatListViewAdapter.notifyDataSetChanged()
+                sendMessageDelayed(
+                    obtainMessage().also { it.what = GET_CHATS },
+                    3000,
+                )
+            }
+            else {
+                msg.data.getParcelableArray("CHATS")?.also { array ->
+                    chatList.clear()
+                    array.map {
+                        val dto = it as ChatDTO
+                        Chat(dto.id, dto.message, dto.subscribers.toSet())
+                    }.forEach { chatList.add(it) }
+                    chatListViewAdapter.notifyDataSetChanged()
+                }
             }
         }
     }
@@ -50,7 +66,21 @@ class MainActivityController(
     private fun initializeSubscriber(id: UUID?) {
         if (id != null) subscriber = id
         LoginOrSignupDialog(mainActivity) {
-            subscriber = this@LoginOrSignupDialog.subscriberId
+            subscriber = subscriberId
+
+            activityMainBinding.chatListView.setOnItemClickListener { _, _, position, _ ->
+                val chat = chatList[position]
+                Intent(mainActivity, ChatActivity::class.java).also {
+                    it.putExtra("SUBSCRIBER_ID", subscriber)
+                    it.putExtra("EDITING_CHAT", ChatDTO(
+                        chat.id,
+                        chat.message,
+                        chat.subscribers.toList()
+                    ))
+                    chatActivityResultLauncher.launch(it)
+                }
+            }
+
             updateChats()
         }
     }
@@ -85,19 +115,21 @@ class MainActivityController(
     private fun registerForActivityResult() = mainActivity.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        updateChats()
-        chatListViewAdapter.notifyDataSetChanged()
+        handler.sendMessage(handler.obtainMessage().also { it.what = GET_CHATS })
     }
 
     private fun updateChats() {
         Thread {
-            chatList.clear()
-            chatRepository.findAllBySubscriberId(subscriber)
-                .forEach { chatList.add(it) }
-            handler.sendMessageDelayed(
-                handler.obtainMessage().also { it.what = GET_CHATS },
-                3000,
-            )
+            chatRepository.findAllBySubscriberId(subscriber).let {
+                Message().also { msg ->
+                    msg.data.putParcelableArray(
+                        "CHATS",
+                        it.map { c -> ChatDTO(c.id, c.message, c.subscribers.toList()) }
+                            .toTypedArray(),
+                    )
+                    handler.sendMessage(msg)
+                }
+            }
         }.start()
     }
 }
