@@ -15,6 +15,7 @@ import com.lucassdalmeida.onemessagechat.persistence.firebase.chat.RealtimeChatR
 import com.lucassdalmeida.onemessagechat.view.ChatActivity
 import com.lucassdalmeida.onemessagechat.view.LoginOrSignupDialog
 import com.lucassdalmeida.onemessagechat.view.MainActivity
+import com.lucassdalmeida.onemessagechat.view.SubscribeDialog
 import com.lucassdalmeida.onemessagechat.view.adapter.ChatListViewAdapter
 import java.util.UUID
 
@@ -61,6 +62,7 @@ class MainActivityController(
     fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.addChatMainMenuOption -> addChat()
+            R.id.subscribeMainMenuOption -> subscribe()
             else -> false
         }
     }
@@ -73,10 +75,18 @@ class MainActivityController(
         return true
     }
 
+    private fun subscribe(): Boolean {
+        SubscribeDialog(mainActivity, subscriber) {
+            handler.sendMessage(handler.obtainMessage().also { it.what = GET_CHATS })
+        }
+        return true
+    }
+
     private fun registerForActivityResult() = mainActivity.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         updateChats()
+        chatListViewAdapter.notifyDataSetChanged()
     }
 
     private fun updateChats() {
@@ -85,8 +95,8 @@ class MainActivityController(
             chatRepository.findAllBySubscriberId(subscriber)
                 .forEach { chatList.add(it) }
             handler.sendMessageDelayed(
-                handler.obtainMessage().apply { what = GET_CHATS },
-                15000
+                handler.obtainMessage().also { it.what = GET_CHATS },
+                3000,
             )
         }.start()
     }
